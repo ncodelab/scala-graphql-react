@@ -7,7 +7,6 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server._
 import akka.stream.ActorMaterializer
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import sangria.execution.deferred.DeferredResolver
 import sangria.parser.QueryParser
 import sangria.execution.{ErrorWithResolver, Executor, QueryAnalysisError}
 import sangria.marshalling.sprayJson._
@@ -19,8 +18,9 @@ import com.ncodelab.data.TaskRepoImpl
 import com.ncodelab.schema.TaskSchemaDefinition
 import com.ncodelab.schema.MyCTX
 import com.typesafe.scalalogging.StrictLogging
-import sangria.marshalling.InputUnmarshaller
 import sangria.renderer.SchemaRenderer
+
+import ch.megard.akka.http.cors.CorsDirectives._
 
 object Application extends App with StrictLogging {
 
@@ -34,7 +34,7 @@ object Application extends App with StrictLogging {
   val taskRepo = new TaskRepoImpl
   logger.debug(schema)
 
-  val route: Route =
+  val route: Route = cors() {
     (post & path("graphql")) {
       entity(as[JsValue]) { requestJson ⇒
         val JsObject(fields) = requestJson
@@ -61,10 +61,10 @@ object Application extends App with StrictLogging {
               operationName = operation)
               .map(OK → _)
               .recover {
-                case error: QueryAnalysisError  =>
+                case error: QueryAnalysisError =>
                   val resolvedError = error.resolveError
                   logger.error(resolvedError.toString())
-                  BadRequest  -> resolvedError
+                  BadRequest -> resolvedError
                 case error: ErrorWithResolver =>
                   val resolvedError = error.resolveError
                   logger.error(resolvedError.toString())
@@ -81,6 +81,7 @@ object Application extends App with StrictLogging {
       get {
         getFromResource("graphiql.html")
       }
+  }
 
   val httpConf = HttpConf.forConfig()
 

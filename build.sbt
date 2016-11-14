@@ -23,6 +23,7 @@ val server = Project("server", file("server"))
       "org.sangria-graphql" %% "sangria" % "1.0.0-RC3",
       "org.sangria-graphql" %% "sangria-spray-json" % "0.3.1",
       "com.typesafe.akka" %% "akka-http-experimental" % "2.4.11",
+      "ch.megard" %% "akka-http-cors" % "0.1.8",
       "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.4.11"
     )
   )

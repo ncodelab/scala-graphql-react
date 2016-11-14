@@ -1,8 +1,5 @@
-import Relay from 'react-relay';
-
-export default {
-  getFolder: (id) => Relay.QL`query {
-  getFolder(folderId: "${id}") {
+export const getFolder = (id) => `query folder {
+  getFolder(folderId: ${id}) {
     id
     name
     tasks{
@@ -12,5 +9,4 @@ export default {
       status
     }
   }
-}`
-};
+}`;

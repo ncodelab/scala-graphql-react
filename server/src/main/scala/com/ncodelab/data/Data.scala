@@ -15,7 +15,7 @@ object Status extends Enumeration {
 @GraphQLName("Task")
 @GraphQLDescription("The task")
 case class Task(
-                 id: String,
+                 id: Int,
                  title: String,
                  text: String,
                  status: Status.Value
@@ -36,11 +36,11 @@ case class Task(
 @GraphQLName("Folder")
 @GraphQLDescription("Folder for tasks")
 case class Folder(
-                   id: String,
+                   id: Int,
                    name: String,
                    tasks: List[Task]
                  ) {
-  def hasTask(taskId: String): Boolean = {
+  def hasTask(taskId: Int): Boolean = {
     tasks.map(_.id).contains(taskId)
   }
 
@@ -48,11 +48,11 @@ case class Folder(
     this.copy(tasks = tasks :+ task)
   }
 
-  def removeTask(taskId: String): Folder = {
+  def removeTask(taskId: Int): Folder = {
     this.copy(tasks = tasks.filterNot(_.id == taskId))
   }
 
-  def getTask(taskId: String): Option[Task] = {
+  def getTask(taskId: Int): Option[Task] = {
     tasks.find(_.id == taskId)
   }
 
@@ -63,79 +63,86 @@ case class Folder(
 
 class TaskRepoImpl extends StrictLogging {
 
-  private def replaceTask(taskId: String, folderId: String)(mutator: (Task) => Task) = {
+  var lastTaskId = 0
+  var lastFolderId = 0
+
+  private def replaceTask(taskId: Int, folderId: Int)(mutator: (Task) => Task): Folder = {
     require(folders.contains(folderId), "Wrong folderId")
     val oldFolder = folders(folderId)
     require(oldFolder.hasTask(taskId), "Wrong taskId")
     val oldTask = oldFolder.getTask(taskId).get
-    folders.replace(folderId, oldFolder.removeTask(taskId).addTask(mutator(oldTask)))
+    val newFolder = oldFolder.removeTask(taskId).addTask(mutator(oldTask))
+    folders.replace(folderId, newFolder)
+    newFolder
   }
 
-  def addFolder(id: String, name: String): Boolean =
-    folders.putIfAbsent(id, Folder(id, name, List())).isEmpty
+  def addFolder(name: String): Folder = {
+    lastFolderId += 1
+    val newFolder = Folder(lastFolderId, name, List())
+    folders.putIfAbsent(newFolder.id, newFolder)
+    newFolder
+  }
 
   def getFolders: List[Folder] = folders.values.toList
 
-  def removeFolder(folderId: String): Boolean = {
+  def removeFolder(folderId: Int): Boolean = {
     folders.remove(folderId)
     true
   }
 
-  def setTaskText(taskId: String, folderId: String, text: String): Boolean = {
+  def setTaskText(taskId: Int, folderId: Int, text: String): Folder = {
     replaceTask(taskId, folderId)(_.setText(text))
-    true
   }
 
-  def setTaskTitle(taskId: String, folderId: String, title: String): Boolean = {
+  def setTaskTitle(taskId: Int, folderId: Int, title: String): Folder = {
     replaceTask(taskId, folderId)(_.setTitle(title))
-    true
   }
 
-  def setFolderName(folderId: String, name: String): Boolean = {
+  def setFolderName(folderId: Int, name: String): Folder = {
     require(folders.contains(folderId), "Missing folder")
     val oldFolder = folders(folderId)
-    folders.replace(folderId, oldFolder.setName(name))
-    true
+    val newFolder = oldFolder.setName(name)
+    folders.replace(folderId, newFolder)
+    newFolder
   }
 
-  def setStatus(taskId: String, folderId: String, status: Status.Value): Boolean = {
+  def setStatus(taskId: Int, folderId: Int, status: Status.Value): Folder = {
     replaceTask(taskId, folderId)(_.setStatus(status))
-    true
   }
 
-  def getFolder(folderId: String): Folder = {
+  def getFolder(folderId: Int): Folder = {
     require(folders.contains(folderId), "Missing folder")
     folders(folderId)
   }
 
-  def addTask(id: String, title: String, text: String, folderId: String): Boolean = {
+  def addTask(folderId: Int, title: String, text: String): Folder = {
     require(folders.contains(folderId), "Try to add task to missing folder")
     val oldFolder = folders(folderId)
-    val task = Task(id, title, text, Status.OPEN)
-    if (oldFolder.hasTask(id)) {
-      false
-    } else {
-      folders.replace(folderId, oldFolder.addTask(task))
-      true
-    }
+    lastTaskId += 1
+    val task = Task(lastTaskId, title, text, Status.OPEN)
+    val newFolder = oldFolder.addTask(task)
+    folders.replace(folderId, newFolder)
+    newFolder
   }
 
-  def removeTask(taskId: String, folderId: String): Boolean = {
+  def removeTask(taskId: Int, folderId: Int): Folder = {
     require(folders.contains(folderId), "Try to remove task from missing folder")
     val oldFolder = folders(folderId)
     require(oldFolder.hasTask(taskId), "Try to remove missing task")
-    folders.replace(folderId, oldFolder.removeTask(taskId))
-    true
+    val newFolder =oldFolder.removeTask(taskId)
+    folders.replace(folderId, newFolder)
+    newFolder
   }
 
-  private val folders = new ConcurrentHashMap[String, Folder]().asScala
-  folders.put("1", Folder("1", "Work", List(
-    Task("1", "TODO app", "Make awesome TODO app.", Status.FINISH),
-    Task("2", "GraphQL support", "Add GraphQL support for TODO app.", Status.OPEN),
-    Task("3", "Share app", "Share app with world", Status.OPEN)
-  )))
-  folders.put("2", Folder("2", "Home", List(
-    Task("1", "Relax", "Relax with pizza and PS4", Status.OPEN)
-  )))
+  private val folders = new ConcurrentHashMap[Int, Folder]().asScala
 
+  addFolder("Work")
+
+  addTask(lastFolderId, "TODO app", "Make awesome TODO app.")
+  setStatus(lastTaskId, lastFolderId, Status.FINISH)
+  addTask(lastFolderId, "GraphQL support", "Add GraphQL support for TODO app.")
+  addTask(lastFolderId, "Share app", "Share app with world")
+
+  addFolder("Home")
+  addTask(lastFolderId, "Relax", "Relax with pizza and PS4")
 }

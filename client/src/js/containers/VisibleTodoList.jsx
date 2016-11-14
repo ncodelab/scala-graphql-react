@@ -1,15 +1,18 @@
 import {connect} from 'react-redux'
-import {toggleTodo, changeTodo, removeTodo, editTodo} from '../actions/index.jsx'
+import { editTodo, localTextEdit } from '../actions/index.jsx'
 import TodoList from '../components/TodoList.jsx'
+import * as Async from "../actions/async.jsx";
+import {invertStatus} from "../data/Status.jsx";
+
 
 const getVisibleTodos = (todos, filter) => {
   switch (filter) {
     case 'SHOW_ALL':
       return todos;
     case 'SHOW_COMPLETED':
-      return todos.filter(t => t.completed);
+      return todos.filter(t => t.isCompleted());
     case 'SHOW_ACTIVE':
-      return todos.filter(t => !t.completed);
+      return todos.filter(t => !t.isCompleted());
   }
 };
 
@@ -21,14 +24,14 @@ const mapStateToProps = (state) => {
 
 const mapDispatchToProps = (dispatch) => {
   return {
-    onTodoClick: (id) => {
-      dispatch(toggleTodo(id))
+    onTodoClick: (id, currentStatus) => {
+      Async.setStatus(id, invertStatus(currentStatus));
     },
     onTodoChange: (id, text) => {
-      dispatch(changeTodo(id, text))
+      dispatch(localTextEdit(id, text));
     },
     onTodoRemove: (id) => {
-      dispatch(removeTodo(id))
+      Async.removeTodo(id);
     },
     onTodoEdit: (id) => {
       dispatch(editTodo(id))

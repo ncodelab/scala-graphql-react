@@ -1,47 +1,40 @@
-let nextTodoId = 0;
+require("./async.jsx");
 
-export const addTodo = (text) => {
+import {Enum} from "../helpers/Enum.jsx";
+
+const [BOOTSTRAP, STATE, SET_VISIBILITY_FILTER, EDIT_FLAG, LOCAL_EDIT] = [
+  {value: "BOOTSTRAP"},
+  {value: "STATE"},
+  {value: "SET_VISIBILITY_FILTER"},
+  {value: "EDIT_FLAG"},
+  {value: "LOCAL_EDIT"}];
+
+export const Event = new Enum({BOOTSTRAP, STATE, SET_VISIBILITY_FILTER, EDIT_FLAG, LOCAL_EDIT});
+
+export const state = (event, state) => {
   return {
-    type: 'ADD_TODO',
-    id: nextTodoId++,
-    text
+    type: event.valueOf(),
+    state
   }
 };
 
-export const setVisibilityFilter = (filter) => {
-  return {
-    type: 'SET_VISIBILITY_FILTER',
-    filter
-  }
-};
+export const synchronousState = (folder) => state(Event.BOOTSTRAP, folder.tasks);
 
-export const toggleTodo = (id) => {
-  return {
-    type: 'TOGGLE_TODO',
-    id
-  }
-};
+export const folderState = (folder) => state(Event.STATE, folder.tasks);
 
-export const changeTodo = (id, text) => {
+export const setVisibilityFilter = (filter) => state(Event.SET_VISIBILITY_FILTER, filter);
+
+export const localTextEdit = (id, text) => {
   return {
-    type: 'CHANGE_TODO',
+    type: Event.LOCAL_EDIT.valueOf(),
     id,
     text
   }
 };
 
-
-export const removeTodo = (id) => {
-  return {
-    type: 'REMOVE_TODO',
-    id
-  }
-};
-
-
 export const editTodo = (id) => {
   return {
-    type: 'EDIT_TODO',
+    type: Event.EDIT_FLAG.valueOf(),
     id
   }
 };

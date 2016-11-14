@@ -1,28 +1,30 @@
 import React, {PropTypes} from 'react'
 
-const Link = ({active, children, onClick, href}) => {
-  if (active) {
+
+class Link extends React.Component {
+  constructor(props) {
+    super(props);
+  }
+
+  render() {
+    let {active, children, onClick, href} = this.props;
     return (
         <li>
-          <a href={href} className="selected">
+          <a href={href} className={active ? "selected" : ""}
+             onClick={e => {
+               onClick()
+             }}
+          >
             {children}
           </a>
         </li>
-    )
+    );
   }
 
-  return (
-      <li>
-        <a href={href}
-           onClick={e => {
-             onClick()
-           }}
-        >
-          {children}
-        </a>
-      </li>
-  )
-};
+  static get defaultProps() {
+    return {}
+  }
+}
 
 Link.propTypes = {
   active: PropTypes.bool.isRequired,
