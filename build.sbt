@@ -14,7 +14,7 @@ val commonSettings = Seq(
 )
 
 
-val server = Project(s"$name-server", file("server"))
+val server = Project("server", file("server"))
   .settings(commonSettings:_*)
   .settings(
     libraryDependencies ++= Seq(
@@ -28,9 +28,4 @@ val server = Project(s"$name-server", file("server"))
   )
 
 
-val client = Project(s"$name-client", file("client"))
-  .enablePlugins(SbtWeb)
-  .settings(commonSettings:_*)
-
-
-val root = Project(name, file(".")).aggregate(server, client)
+val root = Project(name, file(".")).aggregate(server)

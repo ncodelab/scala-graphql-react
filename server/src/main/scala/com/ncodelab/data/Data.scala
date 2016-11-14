@@ -9,7 +9,7 @@ import scala.collection.JavaConverters._
 
 
 object Status extends Enumeration {
-  val OPEN, IN_PROGRESS, FINISH = Value
+  val OPEN, FINISH = Value
 }
 
 @GraphQLName("Task")
@@ -22,6 +22,14 @@ case class Task(
                ) {
   def setStatus(status: Status.Value): Task = {
     this.copy(status = status)
+  }
+
+  def setTitle(title: String): Task = {
+    this.copy(title = title)
+  }
+
+  def setText(text: String): Task = {
+    this.copy(text = text)
   }
 }
 
@@ -47,9 +55,21 @@ case class Folder(
   def getTask(taskId: String): Option[Task] = {
     tasks.find(_.id == taskId)
   }
+
+  def setName(name: String): Folder = {
+    this.copy(name = name)
+  }
 }
 
 class TaskRepoImpl extends StrictLogging {
+
+  private def replaceTask(taskId: String, folderId: String)(mutator: (Task) => Task) = {
+    require(folders.contains(folderId), "Wrong folderId")
+    val oldFolder = folders(folderId)
+    require(oldFolder.hasTask(taskId), "Wrong taskId")
+    val oldTask = oldFolder.getTask(taskId).get
+    folders.replace(folderId, oldFolder.removeTask(taskId).addTask(mutator(oldTask)))
+  }
 
   def addFolder(id: String, name: String): Boolean =
     folders.putIfAbsent(id, Folder(id, name, List())).isEmpty
@@ -61,13 +81,31 @@ class TaskRepoImpl extends StrictLogging {
     true
   }
 
-  def setStatus(taskId: String, folderId: String, status: Status.Value): Boolean = {
-    require(folders.contains(folderId), "Wrong folderId")
-    val oldFolder = folders(folderId)
-    require(oldFolder.hasTask(taskId), "Wrong taskId")
-    val oldTask = oldFolder.getTask(taskId).get
-    folders.replace(folderId, oldFolder.removeTask(taskId).addTask(oldTask.setStatus(status)))
+  def setTaskText(taskId: String, folderId: String, text: String): Boolean = {
+    replaceTask(taskId, folderId)(_.setText(text))
     true
+  }
+
+  def setTaskTitle(taskId: String, folderId: String, title: String): Boolean = {
+    replaceTask(taskId, folderId)(_.setTitle(title))
+    true
+  }
+
+  def setFolderName(folderId: String, name: String): Boolean = {
+    require(folders.contains(folderId), "Missing folder")
+    val oldFolder = folders(folderId)
+    folders.replace(folderId, oldFolder.setName(name))
+    true
+  }
+
+  def setStatus(taskId: String, folderId: String, status: Status.Value): Boolean = {
+    replaceTask(taskId, folderId)(_.setStatus(status))
+    true
+  }
+
+  def getFolder(folderId: String): Folder = {
+    require(folders.contains(folderId), "Missing folder")
+    folders(folderId)
   }
 
   def addTask(id: String, title: String, text: String, folderId: String): Boolean = {
@@ -93,7 +131,7 @@ class TaskRepoImpl extends StrictLogging {
   private val folders = new ConcurrentHashMap[String, Folder]().asScala
   folders.put("1", Folder("1", "Work", List(
     Task("1", "TODO app", "Make awesome TODO app.", Status.FINISH),
-    Task("2", "GraphQL support", "Add GraphQL support for TODO app.", Status.IN_PROGRESS),
+    Task("2", "GraphQL support", "Add GraphQL support for TODO app.", Status.OPEN),
     Task("3", "Share app", "Share app with world", Status.OPEN)
   )))
   folders.put("2", Folder("2", "Home", List(

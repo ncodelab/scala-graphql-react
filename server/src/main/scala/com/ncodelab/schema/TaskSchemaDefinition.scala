@@ -28,9 +28,13 @@ object TaskSchemaDefinition {
       "removeTask",
       "addTask",
       "removeFolder",
+      "getFolder",
       "getFolders",
       "addFolder",
-      "setStatus"
+      "setStatus",
+      "setTaskText",
+      "setTaskTitle",
+      "setFolderName"
     ))
 
   val TaskSchema = Schema(MutationType)
